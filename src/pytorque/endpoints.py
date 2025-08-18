@@ -1,6 +1,9 @@
 from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:  # for type hint only
+    from .models.environment import EnvironmentEacSpec
 import httpx  # noqa: F401
 from pydantic import BaseModel  # noqa: F401
 from .models.generated import *  # noqa: F401,F403
@@ -13,6 +16,9 @@ class _SupportsRequest(Protocol):
 
     @abstractmethod
     def _handle_response(self, resp: Any) -> Any: ...
+    
+    @abstractmethod
+    def _handle_yaml_response(self, resp: Any) -> Any: ...
 
     @property
     @abstractmethod
@@ -483,13 +489,18 @@ class TorqueEndpointsMixin(_SupportsRequest):
         resp = self.torque_client.request("POST", url, params=None, json=(body.model_dump(by_alias=True, exclude_none=True) if hasattr(body, 'model_dump') else body) if body is not None else None, **kwargs)
         return self._handle_response(resp)
 
-    def get_spaces_by_space_name_environments_by_environment_id_eac(self, space_name: str, environment_id: str, **kwargs) -> Any:
+    def get_spaces_by_space_name_environments_by_environment_id_eac(self, space_name: str, environment_id: str, **kwargs) -> EnvironmentEacSpec:
         """Export environment YAML file
         Auto-generated from OpenAPI.
+
+        Returns:
+            EnvironmentEacSpec: wrapper object containing parsed YAML under `.raw`.
         """
         url = f"/spaces/{space_name}/environments/{environment_id}/eac"
         resp = self.torque_client.request("GET", url, params=None, **kwargs)
-        return self._handle_response(resp)
+        # Bypass JSON handler; parse YAML text into EnvironmentEacSpec.
+        from .models.environment import EnvironmentEacSpec  # local import to avoid circular
+        return EnvironmentEacSpec.from_yaml(resp.text)
 
     def delete_spaces_by_space_name_environments_by_environment_id_eac(self, space_name: str, environment_id: str, query: dict | None = None, **kwargs) -> Any:
         """Terminate environment

@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
+import yaml
 
 class EnvironmentStatus(str, Enum):
     PENDING = "PENDING"
@@ -27,3 +28,18 @@ class Blueprint(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+
+class EnvironmentEacSpec(BaseModel):
+    """Parsed representation of an environment EAC YAML export.
+
+    This is a minimal flexible model storing the raw parsed YAML structure.
+    Users can inspect `.raw` or extend this class later.
+    """
+    raw: Dict[str, Any]
+
+    @classmethod
+    def from_yaml(cls, text: str) -> "EnvironmentEacSpec":
+        data = yaml.safe_load(text) or {}
+        if not isinstance(data, dict):
+            data = {"value": data}
+        return cls(raw=data)
