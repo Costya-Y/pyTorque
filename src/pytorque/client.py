@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 from typing import Any, Optional
+import yaml
 
 from .config import TorqueConfig
 from .exceptions import (
@@ -57,8 +58,7 @@ class _BaseClient:
             # Cannot close here synchronously if still open; user should recreate async client context
             self._async_client = None  # type: ignore[attr-defined]
 
-    # -------- Response handling ---------
-    def _handle_response(self, resp: httpx.Response) -> Any:
+    def _validate_response(self, resp: httpx.Response) -> None:
         if resp.status_code == 401:
             raise AuthenticationError("Unauthorized – check API token")
         if resp.status_code == 404:
@@ -67,10 +67,21 @@ class _BaseClient:
             raise RateLimitError("Rate limit exceeded")
         if 500 <= resp.status_code:
             raise ServerError(f"Server error {resp.status_code}: {resp.text}")
+
+    # -------- Response handling ---------
+    def _handle_response(self, resp: httpx.Response) -> Any:
+        self._validate_response(resp)
         try:
             return resp.json()
         except ValueError:
-            raise TorqueError("Invalid JSON response")
+            raise
+
+    def _handle_yaml_response(self, resp: httpx.Response) -> Any:
+        self._validate_response(resp)
+        try:
+            return yaml.safe_load(resp.text)
+        except ValueError:
+            raise
 
     @property
     def base_url(self) -> str:
