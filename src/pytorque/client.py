@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import httpx
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from .config import TorqueConfig
 from .exceptions import (
@@ -112,60 +112,6 @@ class TorqueClient(_BaseClient, TorqueEndpointsMixin):
     def torque_client(self) -> httpx.Client:  # pragma: no cover - simple alias
         return self.client
 
-    # ---- Convenience high-level methods (space-less legacy) ----
-    def list_blueprints(self, space_name: Optional[str] = None) -> List[Blueprint]:
-        """List blueprints.
-
-        If space_name is provided, uses the official space-scoped endpoint.
-        Otherwise attempts legacy /blueprints path (may not exist in all deployments).
-        """
-        if space_name:
-            data = self.get_spaces_by_space_name_blueprints(space_name)  # type: ignore[attr-defined]
-        else:
-            resp = self.client.get("/blueprints")
-            data = self._handle_response(resp)
-        data = data or []
-        return [Blueprint(**bp) for bp in data if isinstance(bp, dict)]
-
-    def list_environments(self, space_name: Optional[str] = None) -> List[Environment]:
-        if space_name:
-            # /operation_hub gives global listing; leaving space filter to server if provided elsewhere
-            data = self.get_operation_hub(active_only=False)  # type: ignore[attr-defined]
-            # Response shape may differ; attempt to extract list heuristically
-            if isinstance(data, dict) and "environments" in data:
-                items = data["environments"]
-            else:
-                items = data
-        else:
-            resp = self.client.get("/environments")
-            items = self._handle_response(resp)
-        items = items or []
-        envs: List[Environment] = []
-        for raw in items:
-            try:
-                envs.append(Environment(**raw))
-            except Exception:
-                # skip malformed entries silently for now
-                continue
-        return envs
-
-    def get_environment(self, env_id: str) -> Environment:
-        resp = self.client.get(f"/environments/{env_id}")
-        data = self._handle_response(resp)
-        return Environment(**data)
-
-    def launch_environment(self, blueprint_id: str, name: Optional[str] = None, inputs: Optional[Dict[str, Any]] = None) -> Environment:
-        payload: Dict[str, Any] = {"blueprint_id": blueprint_id}
-        if name:
-            payload["name"] = name
-        if inputs:
-            payload["inputs"] = inputs
-        data = self._handle_response(self.client.post("/environments", json=payload))
-        return Environment(**data)
-
-    def stop_environment(self, env_id: str) -> Dict[str, Any]:
-        return self._handle_response(self.client.post(f"/environments/{env_id}/stop"))
-
 class AsyncTorqueClient(_BaseClient, AsyncTorqueEndpointsMixin):
     def __init__(self, config: Optional[TorqueConfig] = None, **overrides):
         super().__init__(config, **overrides)
@@ -203,51 +149,3 @@ class AsyncTorqueClient(_BaseClient, AsyncTorqueEndpointsMixin):
     @property
     def torque_client(self) -> httpx.AsyncClient:  # pragma: no cover - simple alias
         return self.client_async
-
-    # ---- Async convenience wrappers (legacy) ----
-    async def list_blueprints(self, space_name: Optional[str] = None) -> List[Blueprint]:
-        if space_name:
-            data = await self.get_spaces_by_space_name_blueprints(space_name)  # type: ignore[attr-defined]
-        else:
-            resp = await self.client.get("/blueprints")
-            data = self._handle_response(resp)
-        data = data or []
-        return [Blueprint(**bp) for bp in data if isinstance(bp, dict)]
-
-    async def list_environments(self, space_name: Optional[str] = None) -> List[Environment]:
-        if space_name:
-            data = await self.get_operation_hub(active_only=False)  # type: ignore[attr-defined]
-            if isinstance(data, dict) and "environments" in data:
-                items = data["environments"]
-            else:
-                items = data
-        else:
-            resp = await self.client.get("/environments")
-            items = self._handle_response(resp)
-        items = items or []
-        envs: List[Environment] = []
-        for raw in items:
-            try:
-                envs.append(Environment(**raw))
-            except Exception:
-                continue
-        return envs
-
-    async def get_environment(self, env_id: str) -> Environment:
-        resp = await self.client.get(f"/environments/{env_id}")
-        data = self._handle_response(resp)
-        return Environment(**data)
-
-    async def launch_environment(self, blueprint_id: str, name: Optional[str] = None, inputs: Optional[Dict[str, Any]] = None) -> Environment:
-        payload: Dict[str, Any] = {"blueprint_id": blueprint_id}
-        if name:
-            payload["name"] = name
-        if inputs:
-            payload["inputs"] = inputs
-        resp = await self.client.post("/environments", json=payload)
-        data = self._handle_response(resp)
-        return Environment(**data)
-
-    async def stop_environment(self, env_id: str) -> Dict[str, Any]:
-        resp = await self.client.post(f"/environments/{env_id}/stop")
-        return self._handle_response(resp)
