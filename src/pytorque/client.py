@@ -12,6 +12,7 @@ from .exceptions import (
     TorqueError,
 )
 from .models.environment import Environment, Blueprint
+from .endpoints import TorqueEndpointsMixin, AsyncTorqueEndpointsMixin
 
 class _BaseClient:
     def __init__(self, config: Optional[TorqueConfig] = None, **overrides):
@@ -35,7 +36,7 @@ class _BaseClient:
     def base_url(self) -> str:
         return self.config.base_url.rstrip('/')
 
-class TorqueClient(_BaseClient):
+class TorqueClient(_BaseClient, TorqueEndpointsMixin):
     def __enter__(self):
         self._client = httpx.Client(base_url=self.base_url, headers=self.config.headers(), timeout=self.config.timeout, verify=self.config.verify_ssl)
         return self
@@ -76,7 +77,7 @@ class TorqueClient(_BaseClient):
     def stop_environment(self, env_id: str) -> Dict[str, Any]:
         return self._handle_response(self.client.post(f"/environments/{env_id}/stop"))
 
-class AsyncTorqueClient(_BaseClient):
+class AsyncTorqueClient(_BaseClient, AsyncTorqueEndpointsMixin):
     def __init__(self, config: Optional[TorqueConfig] = None, **overrides):
         super().__init__(config, **overrides)
         self._client: Optional[httpx.AsyncClient] = None
