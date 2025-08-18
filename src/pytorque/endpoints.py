@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 import httpx  # noqa: F401
 from pydantic import BaseModel  # noqa: F401
@@ -9,9 +10,13 @@ from .models.generated import *  # noqa: F401,F403
 from typing import Protocol, runtime_checkable
 @runtime_checkable
 class _SupportsRequest(Protocol):
+
+    @abstractmethod
     def _handle_response(self, resp: Any) -> Any: ...
+
     @property
-    def torque_client(self): ...
+    @abstractmethod
+    def torque_client(self) -> httpx.BaseClient: ... # type: ignore
 
 class TorqueEndpointsMixin(_SupportsRequest):
     def post_accounts_by_account_login(self, account: str, body: Any | None = None, **kwargs) -> TokenResponse:
