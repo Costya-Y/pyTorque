@@ -23,13 +23,16 @@ pip install -e .[dev]
 from pytorque import TorqueClient
 
 client = TorqueClient(base_url="https://portal.qtorque.io", api_token="<TOKEN>")
-blueprints = client.list_blueprints()
+or
+client = TorqueClient() assuming requested environment variable properly set.
+
+blueprints = client.get_spaces_by_space_name_catalog(space_name="NAMESPACE")
 print(blueprints)
 ```
 
 ## Environment Variables
 - `TORQUE_API_TOKEN` – default token if not passed explicitly.
-- `TORQUE_BASE_URL` – default base URL (e.g. `https://portal.qtorque.io`).
+- `TORQUE_BASE_URL` – (optional) default base URL (e.g. `https://portal.qtorque.io`).
 
 ## Development
 Run tests:
