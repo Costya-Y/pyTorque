@@ -10,9 +10,8 @@ from .exceptions import (
     NotFoundError,
     RateLimitError,
     ServerError,
-    TorqueError,
 )
-from .models.environment import Environment, Blueprint
+ # (Legacy models removed from direct client surface; users should rely on generated endpoint models)
 from .endpoints import TorqueEndpointsMixin, AsyncTorqueEndpointsMixin
 
 class _BaseClient:
@@ -104,11 +103,7 @@ class _BaseClient:
         return self._client
 
 class TorqueClient(_BaseClient, TorqueEndpointsMixin):
-    """Synchronous Torque API client.
-
-    Provides generated low-level endpoint wrappers (see TorqueEndpointsMixin) plus
-    a few convenience methods compatible with earlier simple version of this lib.
-    """
+    """Synchronous Torque API client exposing auto-generated endpoint methods."""
 
     def __enter__(self):  # context manager builds client early
         _ = self.client

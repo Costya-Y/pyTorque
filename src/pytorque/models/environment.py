@@ -4,6 +4,8 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 import yaml
+import json
+from yaml.error import YAMLError
 
 class EnvironmentStatus(str, Enum):
     PENDING = "PENDING"
@@ -67,9 +69,56 @@ class EnvironmentEacSpec(BaseModel):
 
     @classmethod
     def from_yaml(cls, text: str) -> "EnvironmentEacSpec":
-        raw = yaml.safe_load(text) or {}
-        if not isinstance(raw, dict):
-            raise ValueError("EAC YAML root must be a mapping")
+        """Parse an Environment EAC export YAML string.
+
+        The Torque service sometimes returns YAML that includes trailing commas
+        after mapping values (a JSON style that standard YAML forbids). To be
+        resilient we attempt standard safe_load first, then (on failure) apply a
+        light normalization pass that removes trailing commas from scalar lines
+        and retries. As an additional fallback, if the content looks like JSON
+        we attempt json.loads.
+        """
+
+        def _try_yaml(data: str) -> Dict[str, Any]:
+            loaded = yaml.safe_load(data) or {}
+            if not isinstance(loaded, dict):
+                raise ValueError("EAC YAML root must be a mapping")
+            return loaded
+
+        # Remove uniform leading indentation (common in triple-quoted tests)
+        lines = text.splitlines()
+        non_empty = [l for l in lines if l.strip()]
+        if non_empty:
+            # Compute minimal leading spaces across non-empty lines
+            import re
+            leading = min(len(re.match(r'^[ \t]*', l).group(0)) for l in non_empty)  # type: ignore[arg-type]
+            if leading:
+                text = '\n'.join(l[leading:] if len(l) >= leading else l for l in lines)
+        try:
+            raw = _try_yaml(text)
+        except YAMLError:
+            # Relaxed mode: strip trailing commas at end-of-line for simple key/value lines.
+            normalized_lines: List[str] = []
+            for line in text.splitlines():
+                stripped = line.rstrip()
+                # If line looks like key: value, and ends with a trailing comma, drop the comma (even for [], {}).
+                if ':' in stripped and stripped.endswith(','):
+                    stripped = stripped[:-1]
+                normalized_lines.append(stripped)
+            normalized_text = '\n'.join(normalized_lines)
+            try:
+                raw = _try_yaml(normalized_text)
+            except YAMLError:
+                # Last resort: try JSON (after removing trailing commas that would invalidate JSON)
+                json_candidate = normalized_text
+                try:
+                    raw_json = json.loads(json_candidate)
+                    if isinstance(raw_json, dict):
+                        raw = raw_json
+                    else:
+                        raise ValueError("EAC export is not a mapping after JSON parse attempt")
+                except Exception as e:  # noqa: BLE001 - want original context
+                    raise ValueError("Failed to parse EAC YAML/JSON export") from e
         env_meta = EnvironmentMeta(**(raw.get("environment", {}) or {}))
         grains_raw = raw.get("grains", {}) or {}
         grains: Dict[str, Grain] = {}
@@ -99,3 +148,47 @@ class EnvironmentEacSpec(BaseModel):
 
     def get_grain(self, name: str) -> Optional[Grain]:
         return self.grains.get(name)
+
+    # ------------------------------------------------------------------
+    # Serialization helpers
+    # ------------------------------------------------------------------
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary representation mirroring the original EAC export layout.
+
+        The ordering of keys is preserved (Python 3.7+ dicts keep insertion order),
+        so subsequent ``yaml.safe_dump(sort_keys=False)`` calls will keep the same
+        relative ordering for readability and diff-friendliness.
+        """
+        grains_dict: Dict[str, Any] = {}
+        for gname, grain in self.grains.items():
+            grain_payload: Dict[str, Any] = {}
+            if grain.depends_on is not None:
+                grain_payload["depends-on"] = grain.depends_on
+            if grain.kind is not None:
+                grain_payload["kind"] = grain.kind
+            # Use by_alias to emit 'env-vars'
+            grain_payload["spec"] = grain.spec.model_dump(by_alias=True, exclude_none=True)
+            grains_dict[gname] = grain_payload
+
+        root: Dict[str, Any] = {}
+        # environment metadata
+        env_meta = self.meta.model_dump(exclude_none=True)
+        if env_meta:
+            root["environment"] = env_meta
+        # grains
+        root["grains"] = grains_dict
+        # always include inputs/outputs even if empty to be explicit
+        root["inputs"] = self.inputs or {}
+        root["outputs"] = self.outputs or {}
+        if self.spec_version is not None:
+            root["spec_version"] = self.spec_version
+        return root
+
+    def to_yaml(self) -> str:
+        """Serialize the spec back to a YAML string.
+
+        Uses ``yaml.safe_dump`` with ``sort_keys=False`` to preserve insertion
+        order (matching original parse order), minimizing noisy diffs.
+        """
+        data = self.to_dict()
+        return yaml.safe_dump(data, sort_keys=False)

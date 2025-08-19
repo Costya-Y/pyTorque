@@ -13,42 +13,40 @@ class DummyResponse:
 class DummyHTTPClient:
     def __init__(self, responses):
         self.responses = responses
-    def get(self, path):
-        return self.responses.get(('GET', path))
-    def post(self, path, json=None):
-        return self.responses.get(('POST', path))
+    def request(self, method, path, params=None, json=None, **kwargs):
+        return self.responses.get((method, path))
 
 @pytest.fixture
 def client(monkeypatch):
     cfg = TorqueConfig(base_url='https://example/api', api_token='x')
     c = TorqueClient(cfg)
     dummy = DummyHTTPClient({
-        ('GET', '/blueprints'): DummyResponse(200, [{'id':'b1','name':'BP1'}]),
-        ('GET', '/environments'): DummyResponse(200, [{'id':'e1','name':'Env1','status':'RUNNING'}]),
-        ('GET', '/environments/e1'): DummyResponse(200, {'id':'e1','name':'Env1','status':'RUNNING'}),
-        ('POST', '/environments'): DummyResponse(200, {'id':'e2','name':'Env2','status':'PENDING'}),
-        ('POST', '/environments/e1/stop'): DummyResponse(200, {'result':'stopping'}),
+        ('GET', '/spaces/space1/blueprints'): DummyResponse(200, [{'blueprint_name':'b1','name':'BP1'}]),
+        ('GET', '/spaces/space1/environments/v2'): DummyResponse(200, {'environment_list':[{'id':'e1'}]}),
+        ('GET', '/spaces/space1/environments/e1'): DummyResponse(200, { 'details': { 'id':'e1', 'state': { 'current_state': {'Active': None } } } }),
+        ('POST', '/spaces/space1/environments'): DummyResponse(200, {'id':'e2'}),
+        ('DELETE', '/spaces/space1/environments/e1'): DummyResponse(200, {'result':'stopping'}),
     })
     # Inject dummy HTTP client by setting protected attribute used by property
     monkeypatch.setattr(c, '_client', dummy, raising=False)
     return c
 
 def test_list_blueprints(client):
-    bps = client.list_blueprints()
-    assert bps[0].id == 'b1'
+    bps = client.get_spaces_by_space_name_blueprints('space1')
+    assert bps[0].blueprint_name == 'b1'
 
 def test_list_environments(client):
-    envs = client.list_environments()
-    assert envs[0].id == 'e1'
+    envs_resp = client.get_spaces_by_space_name_environments_v2('space1')
+    assert envs_resp.environment_list[0].id == 'e1'
 
 def test_get_environment(client):
-    env = client.get_environment('e1')
-    assert env.name == 'Env1'
+    env = client.get_spaces_by_space_name_environments_by_environment_id('space1','e1')
+    assert env.details.id == 'e1'
 
 def test_launch_environment(client):
-    env = client.launch_environment('b1', name='Env2')
+    env = client.post_spaces_by_space_name_environments('space1', body=None)
     assert env.id == 'e2'
 
 def test_stop_environment(client):
-    r = client.stop_environment('e1')
+    r = client.delete_spaces_by_space_name_environments_by_environment_id('space1','e1')
     assert r['result'] == 'stopping'

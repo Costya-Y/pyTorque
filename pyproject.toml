@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytorque"
-version = "0.1.1"
+version = "0.1.1.2"
 description = "Python client library for Quali Torque SaaS API"
 authors = [ { name="Your Name", email="you@example.com" } ]
 license = { text = "Apache-2.0" }
@@ -20,25 +20,27 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "httpx>=0.27.0",
-    "pydantic>=2.7",
-    "typing-extensions>=4.5.0",
-    "PyYAML>=6.0.1",
+    # Pinned to ensure reproducible installs; keep in sync with requirements.txt
+    "httpx==0.28.1",
+    "pydantic==2.11.7",
+    "typing-extensions==4.12.2",
+    "PyYAML==6.0.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
-    "coverage[toml]>=7.5",
-    "black>=24.3.0",
-    "isort>=5.13.2",
-    "mypy>=1.8.0",
+    # Pinned dev tooling (adjust as needed)
+    "pytest==8.1.1",
+    "coverage[toml]==7.4.4",
+    "black==24.3.0",
+    "isort==5.13.2",
+    "mypy==1.8.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/pytorque"
-Documentation = "https://github.com/your-org/pytorque#readme"
-Issues = "https://github.com/your-org/pytorque/issues"
+Homepage = "https://github.com/QualiSystemsLab/pytorque"
+Documentation = "https://github.com/QualiSystemsLab/pytorque#readme"
+Issues = "https://github.com/QualiSystemsLab/pytorque/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

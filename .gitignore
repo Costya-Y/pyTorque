@@ -12,3 +12,5 @@ pytest_cache/
 htmlcov/
 /example.py
 build
+.idea/
+K7hLJdYVlfWv.yaml
