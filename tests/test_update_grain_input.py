@@ -20,7 +20,7 @@ def test_update_grain_input_adds_defaults_and_round_trips():
     assert cpu_entry["cpu"] == 2
     assert ram_entry["ram"] == "4Gi"
     # Update two inputs on the grain
-    spec.update_grain_input(grain_name, {"cpu": 3, "ram": "6Gi"})
+    grain.update_grain_input({"cpu": 3, "ram": "6Gi"})
 
     cpu_entry = next(item for item in grain.spec.inputs if isinstance(item, dict) and "cpu" in item)
     ram_entry = next(item for item in grain.spec.inputs if isinstance(item, dict) and "ram" in item)
@@ -37,3 +37,6 @@ def test_update_grain_input_adds_defaults_and_round_trips():
     assert cpu2["cpu"] == 3
     assert ram2["ram"] == "6Gi"
 
+
+if __name__ == "__main__":
+    test_update_grain_input_adds_defaults_and_round_trips()

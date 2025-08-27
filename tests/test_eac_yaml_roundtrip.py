@@ -1,7 +1,7 @@
 import pathlib
 from pytorque.models.environment import EnvironmentEacSpec
 
-SAMPLE_PATH = pathlib.Path(__file__).parent.parent / "K7hLJdYVlfWv.yaml"
+SAMPLE_PATH = pathlib.Path(__file__).parent / "K7hLJdYVlfWv.yaml"
 
 
 def test_eac_round_trip():
