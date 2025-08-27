@@ -149,6 +149,14 @@ class EnvironmentEacSpec(BaseModel):
     def get_grain(self, name: str) -> Optional[Grain]:
         return self.grains.get(name)
 
+    def update_grain_input(self, name: str, new_inputs: Dict[str, Any]) -> None:
+        grain = self.get_grain(name)
+        if grain:
+            for input in new_inputs:
+                env_input = next(x for x in grain.spec.inputs if x.get(input))
+                grain.spec.inputs.remove(env_input)
+                grain.spec.inputs.append({input: new_inputs[input]})
+
     # ------------------------------------------------------------------
     # Serialization helpers
     # ------------------------------------------------------------------
