@@ -1,7 +1,7 @@
 # AUTO-GENERATED: Do not edit manually. Run scripts/generate_models.py
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 
 __all__ = []  # populated at end
 
@@ -278,10 +278,20 @@ class BlueprintGrainForList(BaseModel):
 
 __all__.append("BlueprintGrainForList")
 
-class BlueprintInputStyle(BaseModel):
+class BlueprintInputStyle(RootModel[str]):
+    """Display style of blueprint input as returned by the API.
+
+    Using RootModel[str] keeps this flexible to accept any server-provided string
+    (e.g., "text", "password", etc.) without failing validation.
+    """
     pass
 
-class BlueprintInputType(BaseModel):
+class BlueprintInputType(RootModel[str]):
+    """Type of blueprint input as returned by the API.
+
+    Using RootModel[str] keeps this flexible to accept any server-provided string
+    (e.g., "string", "number", "boolean", etc.) without failing validation.
+    """
     pass
 
 class BlueprintValidationResponse(BaseModel):
@@ -459,8 +469,8 @@ class Color(BaseModel):
     """possible values: FrogGreen, Grey"""
     pass
 
-class TagType(BaseModel):
-    """possible values: System, PreDefined, UserDefined, Override"""
+class TagType(RootModel[str]):
+    """Tag type as string (system, user_defined, override, pre_defined)."""
     pass
 
 class AddAgentRequest(BaseModel):
@@ -1155,9 +1165,12 @@ class BlueprintTagResponse(BaseModel):
 __all__.append("BlueprintTagResponse")
 
 class CatalogForGetAllResponse(BaseModel):
-    """Published blueprint information
-<remarks>
-Published blueprint is a blueprint that is available in blueprint catalog
+    """Published blueprint information
+
+<remarks>
+
+Published blueprint is a blueprint that is available in blueprint catalog
+
 </remarks>"""
     launch_allowed: Optional[bool] = Field(None, description="Blueprint launch allowed")
     blueprint_name: Optional[str] = Field(None, description="Blueprint name")
@@ -1414,9 +1427,12 @@ class PlanDiffType(BaseModel):
     pass
 
 class TokenResponse(BaseModel):
-    """Describes the authentication server response if the request for an access token is valid
-<remarks>
- Contains access token and some additional properties about the authorization
+    """Describes the authentication server response if the request for an access token is valid
+
+<remarks>
+
+ Contains access token and some additional properties about the authorization
+
 </remarks>"""
     access_token: Optional[str] = Field(None, description="Access token string as issued by the authorization server")
     refresh_token: Optional[str] = Field(None, description="Refresh token to be used to extend existing session")
@@ -1634,10 +1650,14 @@ class DeploymentDriftResponse(BaseModel):
 __all__.append("DeploymentDriftResponse")
 
 class EnvironmentAnnotationResponse(BaseModel):
-    """Annotation Response that return to the UI.
-Result of combining the info from:
-Quali.Colony.Services.Environments.Domain.Annotations.EnvironmentAnnotation.cs
-+
+    """Annotation Response that return to the UI.
+
+Result of combining the info from:
+
+Quali.Colony.Services.Environments.Domain.Annotations.EnvironmentAnnotation.cs
+
++
+
 Quali.Colony.Services.Environments.Domain.Annotations.EnvironmentAnnotationDefinition.cs"""
     key: Optional[str] = None
     value: Optional[str] = None
@@ -1809,12 +1829,12 @@ class EnvironmentOutputResponse(BaseModel):
 
 __all__.append("EnvironmentOutputResponse")
 
-class EnvironmentPhase(BaseModel):
-    """possible values: Initialized, PendingApproval, LaunchScheduled, Approved, Deploying, Importing, Active, Inactive, Terminating, Releasing, Updating, Aborted"""
+class EnvironmentPhase(RootModel[str]):
+    """Environment phase as a string from API (flexible)."""
     pass
 
-class EnvironmentPhaseExternal(BaseModel):
-    """Environment Phase as presented to client"""
+class EnvironmentPhaseExternal(RootModel[str]):
+    """External environment phase as string (e.g., 'Ended')."""
     pass
 
 class EnvironmentReservedResourceResponse(BaseModel):
@@ -1881,8 +1901,8 @@ class GrainSourceResponse(BaseModel):
 
 __all__.append("GrainSourceResponse")
 
-class GrainPhaseExternal(BaseModel):
-    """possible values: Deployed, DeployFailed, Deploying, Importing, Releasing, Terminating, Terminated, Updating, Pending, WaitingApproval"""
+class GrainPhaseExternal(RootModel[str]):
+    """Grain external phase as string (e.g., 'Terminated')."""
     pass
 
 class IEnvironmentExecutionRetentionResponse(BaseModel):
@@ -2033,8 +2053,8 @@ class SandboxTag(BaseModel):
 
 __all__.append("SandboxTag")
 
-class TagScope(BaseModel):
-    """possible values: Account, Space, Blueprint, Runtime"""
+class TagScope(RootModel[str]):
+    """Tag scope as string ('account', 'space', 'blueprint', 'runtime')."""
     pass
 
 class TimeDataResponse(BaseModel):
